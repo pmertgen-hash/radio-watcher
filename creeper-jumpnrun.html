@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Creeper Jump & Run</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,41 +12,61 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100dvh;
       font-family: 'Courier New', monospace;
       color: #fff;
+      touch-action: none;
+      overflow: hidden;
     }
     h1 {
       color: #3ddc84;
-      margin-bottom: 10px;
-      font-size: 1.6rem;
+      margin-bottom: 6px;
+      font-size: clamp(0.9rem, 3vw, 1.6rem);
       letter-spacing: 3px;
       text-shadow: 0 0 10px #3ddc8488;
+    }
+    #gameWrap {
+      position: relative;
+      width: min(800px, 100vw);
     }
     canvas {
       border: 3px solid #3ddc84;
       box-shadow: 0 0 20px #3ddc8444;
       display: block;
+      width: 100%;
+      height: auto;
     }
     #hud {
       display: flex;
       justify-content: space-between;
-      width: 800px;
-      margin-top: 8px;
-      font-size: 0.85rem;
+      width: 100%;
+      margin-top: 4px;
+      font-size: clamp(0.6rem, 2vw, 0.85rem);
       color: #aaa;
+      padding: 0 2px;
     }
+    #hudMid { display: none; }
     #overlay {
       position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 12px;
       pointer-events: none;
     }
-    #overlay h2 { font-size: 2.5rem; color: #3ddc84; text-shadow: 0 0 15px #3ddc84; }
-    #overlay p  { font-size: 1rem; color: #ccc; }
+    #overlay h2 {
+      font-size: clamp(1.2rem, 5vw, 2.5rem);
+      color: #3ddc84;
+      text-shadow: 0 0 15px #3ddc84;
+      text-align: center;
+    }
+    #overlay p { font-size: clamp(0.65rem, 2.5vw, 1rem); color: #ccc; text-align: center; }
+    #overlayAction {
+      color: #3ddc84 !important;
+      font-size: clamp(0.75rem, 2.8vw, 1.1rem) !important;
+    }
     #memeOverlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -57,25 +78,56 @@
       gap: 12px;
     }
     #memeOverlay img {
-      max-width: 420px;
-      max-height: 280px;
+      max-width: 80%;
+      max-height: 55%;
       border: 4px solid #3ddc84;
       border-radius: 8px;
     }
-    #memeOverlay p {
-      color: #fff;
-      font-size: 1rem;
+    #memeOverlay p { color: #fff; font-size: clamp(0.8rem, 3vw, 1rem); }
+
+    /* ── Touch controls ── */
+    #touchControls {
+      display: none;
+      width: min(800px, 100vw);
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px 4px;
+      gap: 8px;
+    }
+    .btnGroup { display: flex; gap: 8px; }
+    .tBtn {
+      width: clamp(60px, 16vw, 80px);
+      height: clamp(60px, 16vw, 80px);
+      border-radius: 12px;
+      border: 3px solid #3ddc84;
+      background: #3ddc8422;
+      color: #3ddc84;
+      font-size: clamp(1.2rem, 5vw, 1.8rem);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+      touch-action: none;
+    }
+    .tBtn.pressed { background: #3ddc8455; }
+
+    @media (pointer: coarse) {
+      #touchControls { display: flex; }
+      #hudMid { display: none !important; }
     }
   </style>
 </head>
 <body>
-  <h1>CREEPER JUMP & RUN</h1>
-  <div style="position:relative">
+  <h1>CREEPER JUMP &amp; RUN</h1>
+  <div id="gameWrap">
     <canvas id="c" width="800" height="450"></canvas>
     <div id="overlay">
       <h2 id="overlayTitle">CREEPER JUMP&nbsp;&amp;&nbsp;RUN</h2>
-      <p id="overlayMsg">Pfeiltasten / WASD zum Spielen &nbsp;|&nbsp; LEERTASTE zum Springen</p>
-      <p style="color:#3ddc84;font-size:1.1rem" id="overlayAction">[ ENTER drücken ]</p>
+      <p id="overlayMsg">Pfeiltasten / WASD &nbsp;|&nbsp; Springen: W / ↑ / Leertaste</p>
+      <p id="overlayAction">[ ENTER / Tippen ]</p>
     </div>
     <div id="memeOverlay">
       <img id="memeImg" src="" alt="meme">
@@ -84,8 +136,16 @@
   </div>
   <div id="hud">
     <span id="scoreEl">Punkte: 0</span>
-    <span>Pfeiltasten / WASD &nbsp;|&nbsp; Springen: W / ↑ / Leertaste</span>
+    <span id="hudMid">Pfeiltasten / WASD &nbsp;|&nbsp; Springen: W / ↑ / Leertaste</span>
     <span id="livesEl">Leben: ❤❤❤</span>
+  </div>
+  <!-- Touch buttons -->
+  <div id="touchControls">
+    <div class="btnGroup">
+      <button class="tBtn" id="btnLeft">◀</button>
+      <button class="tBtn" id="btnRight">▶</button>
+    </div>
+    <button class="tBtn" id="btnJump" style="width:clamp(70px,18vw,90px);height:clamp(70px,18vw,90px)">▲</button>
   </div>
 
 <script>
@@ -102,16 +162,13 @@ const C = {
   creeperGreen: '#3ddc84',
   creeperDark: '#1a7a45',
   creeperBlack: '#111',
-  creeperFace: '#2ecc71',
   coin: '#ffd700',
   spikeFill: '#e63946',
   spikeSide: '#9d0208',
-  tnt: '#c1121f',
-  tntStripe: '#fdf0d5',
 };
 
 // ── State ────────────────────────────────────────────────────────────────────
-let state = 'menu'; // menu | playing | dead | win
+let state = 'menu';
 let score = 0, lives = 3, frameCount = 0;
 let cameraX = 0;
 
@@ -124,117 +181,106 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
+// Tap on canvas/overlay to start
+document.getElementById('gameWrap').addEventListener('pointerdown', () => {
+  if (state === 'menu' || state === 'dead' || state === 'win') startGame();
+});
+
+// ── Touch buttons ─────────────────────────────────────────────────────────────
+function setupTouchBtn(id, keyCode) {
+  const el = document.getElementById(id);
+  el.addEventListener('pointerdown', e => { e.preventDefault(); keys[keyCode] = true; el.classList.add('pressed'); });
+  el.addEventListener('pointerup',   e => { e.preventDefault(); keys[keyCode] = false; el.classList.remove('pressed'); });
+  el.addEventListener('pointerleave',e => { keys[keyCode] = false; el.classList.remove('pressed'); });
+}
+setupTouchBtn('btnLeft',  'ArrowLeft');
+setupTouchBtn('btnRight', 'ArrowRight');
+setupTouchBtn('btnJump',  'ArrowUp');
+
 // ── Level ────────────────────────────────────────────────────────────────────
 const TILE = 40;
 const LEVEL_W = 5000;
 
 function makePlatforms() {
-  const plats = [
-    // ground slabs
-    { x: -200, y: H - TILE,     w: 600,  h: TILE, type:'ground' },
-    { x:  500, y: H - TILE,     w: 800,  h: TILE, type:'ground' },
-    { x: 1400, y: H - TILE,     w: 600,  h: TILE, type:'ground' },
-    { x: 2100, y: H - TILE,     w: 400,  h: TILE, type:'ground' },
-    { x: 2600, y: H - TILE,     w: 700,  h: TILE, type:'ground' },
-    { x: 3400, y: H - TILE,     w: 900,  h: TILE, type:'ground' },
-    { x: 4400, y: H - TILE,     w: 800,  h: TILE, type:'ground' },
-    // floating platforms
-    { x:  300, y: H - 120,      w: 120,  h: TILE, type:'plat' },
-    { x:  480, y: H - 180,      w: 120,  h: TILE, type:'plat' },
-    { x:  700, y: H - 220,      w: 160,  h: TILE, type:'plat' },
-    { x:  900, y: H - 160,      w: 120,  h: TILE, type:'plat' },
-    { x: 1100, y: H - 250,      w: 140,  h: TILE, type:'plat' },
-    { x: 1300, y: H - 180,      w: 120,  h: TILE, type:'plat' },
-    { x: 1600, y: H - 200,      w: 160,  h: TILE, type:'plat' },
-    { x: 1820, y: H - 270,      w: 120,  h: TILE, type:'plat' },
-    { x: 2050, y: H - 180,      w: 140,  h: TILE, type:'plat' },
-    { x: 2280, y: H - 240,      w: 120,  h: TILE, type:'plat' },
-    { x: 2450, y: H - 160,      w: 120,  h: TILE, type:'plat' },
-    { x: 2700, y: H - 200,      w: 160,  h: TILE, type:'plat' },
-    { x: 2920, y: H - 270,      w: 120,  h: TILE, type:'plat' },
-    { x: 3150, y: H - 200,      w: 160,  h: TILE, type:'plat' },
-    { x: 3400, y: H - 250,      w: 120,  h: TILE, type:'plat' },
-    { x: 3600, y: H - 180,      w: 140,  h: TILE, type:'plat' },
-    { x: 3800, y: H - 240,      w: 120,  h: TILE, type:'plat' },
-    { x: 4050, y: H - 200,      w: 160,  h: TILE, type:'plat' },
-    { x: 4250, y: H - 280,      w: 120,  h: TILE, type:'plat' },
-    { x: 4500, y: H - 220,      w: 160,  h: TILE, type:'plat' },
-    { x: 4700, y: H - 160,      w: 120,  h: TILE, type:'plat' },
+  return [
+    { x: -200, y: H-TILE,   w: 600,  h: TILE, type:'ground' },
+    { x:  500, y: H-TILE,   w: 800,  h: TILE, type:'ground' },
+    { x: 1400, y: H-TILE,   w: 600,  h: TILE, type:'ground' },
+    { x: 2100, y: H-TILE,   w: 400,  h: TILE, type:'ground' },
+    { x: 2600, y: H-TILE,   w: 700,  h: TILE, type:'ground' },
+    { x: 3400, y: H-TILE,   w: 900,  h: TILE, type:'ground' },
+    { x: 4400, y: H-TILE,   w: 800,  h: TILE, type:'ground' },
+    { x:  300, y: H-120,    w: 120,  h: TILE, type:'plat' },
+    { x:  480, y: H-180,    w: 120,  h: TILE, type:'plat' },
+    { x:  700, y: H-220,    w: 160,  h: TILE, type:'plat' },
+    { x:  900, y: H-160,    w: 120,  h: TILE, type:'plat' },
+    { x: 1100, y: H-250,    w: 140,  h: TILE, type:'plat' },
+    { x: 1300, y: H-180,    w: 120,  h: TILE, type:'plat' },
+    { x: 1600, y: H-200,    w: 160,  h: TILE, type:'plat' },
+    { x: 1820, y: H-270,    w: 120,  h: TILE, type:'plat' },
+    { x: 2050, y: H-180,    w: 140,  h: TILE, type:'plat' },
+    { x: 2280, y: H-240,    w: 120,  h: TILE, type:'plat' },
+    { x: 2450, y: H-160,    w: 120,  h: TILE, type:'plat' },
+    { x: 2700, y: H-200,    w: 160,  h: TILE, type:'plat' },
+    { x: 2920, y: H-270,    w: 120,  h: TILE, type:'plat' },
+    { x: 3150, y: H-200,    w: 160,  h: TILE, type:'plat' },
+    { x: 3400, y: H-250,    w: 120,  h: TILE, type:'plat' },
+    { x: 3600, y: H-180,    w: 140,  h: TILE, type:'plat' },
+    { x: 3800, y: H-240,    w: 120,  h: TILE, type:'plat' },
+    { x: 4050, y: H-200,    w: 160,  h: TILE, type:'plat' },
+    { x: 4250, y: H-280,    w: 120,  h: TILE, type:'plat' },
+    { x: 4500, y: H-220,    w: 160,  h: TILE, type:'plat' },
+    { x: 4700, y: H-160,    w: 120,  h: TILE, type:'plat' },
   ];
-  return plats;
 }
 
 function makeCoins(plats) {
   const coins = [];
   plats.forEach(p => {
     if (p.type === 'plat') {
-      for (let x = p.x + 20; x < p.x + p.w - 10; x += 36)
-        coins.push({ x, y: p.y - 22, r: 10, collected: false });
+      for (let x = p.x+20; x < p.x+p.w-10; x += 36)
+        coins.push({ x, y: p.y-22, r: 10, collected: false });
     } else {
-      for (let x = p.x + 40; x < p.x + p.w - 20; x += 80)
-        coins.push({ x, y: p.y - 22, r: 10, collected: false });
+      for (let x = p.x+40; x < p.x+p.w-20; x += 80)
+        coins.push({ x, y: p.y-22, r: 10, collected: false });
     }
   });
   return coins;
 }
 
-function makeSpikes(plats) {
-  const spikes = [];
-  // Place spikes on specific ground sections
-  const spikePositions = [
-    620, 660, 700, 740,
-    1450, 1490, 1530,
-    2650, 2690, 2730,
-    3450, 3490,
-    4450, 4490, 4530,
-  ];
-  spikePositions.forEach(sx => {
-    spikes.push({ x: sx, y: H - TILE - 20, w: 30, h: 20 });
-  });
-  return spikes;
+function makeSpikes() {
+  return [620,660,700,740,1450,1490,1530,2650,2690,2730,3450,3490,4450,4490,4530]
+    .map(sx => ({ x: sx, y: H-TILE-20, w: 30, h: 20 }));
 }
 
 function makeFlag() {
-  return { x: LEVEL_W - 180, y: H - TILE - 160, w: 20, h: 160 };
+  return { x: LEVEL_W-180, y: H-TILE-160, w: 20, h: 160 };
 }
 
 // ── Creeper drawing ───────────────────────────────────────────────────────────
 function drawCreeper(x, y, size, blink) {
   const s = size;
-  // Head body (green)
   ctx.fillStyle = C.creeperGreen;
   ctx.fillRect(x, y, s, s);
-
-  // Darker shading on right and bottom
   ctx.fillStyle = C.creeperDark;
-  ctx.fillRect(x + s * 0.75, y, s * 0.25, s);
-  ctx.fillRect(x, y + s * 0.75, s, s * 0.25);
-
-  // pixel detail — vertical stripe
-  ctx.fillStyle = C.creeperDark;
-  ctx.fillRect(x + s * 0.46, y + 4, s * 0.08, s - 8);
-
+  ctx.fillRect(x+s*0.75, y, s*0.25, s);
+  ctx.fillRect(x, y+s*0.75, s, s*0.25);
+  ctx.fillRect(x+s*0.46, y+4, s*0.08, s-8);
   if (!blink) {
-    // Eyes (two dark squares)
-    const ew = s * 0.22, eh = s * 0.18;
-    const ey = y + s * 0.28;
+    const ew = s*0.22, eh = s*0.18, ey = y+s*0.28;
     ctx.fillStyle = C.creeperBlack;
-    ctx.fillRect(x + s * 0.14, ey, ew, eh);
-    ctx.fillRect(x + s * 0.64, ey, ew, eh);
-
-    // Mouth (T-shape, classic creeper)
-    const mw = s * 0.16, mh = s * 0.20;
-    const mx1 = x + s * 0.30, mx2 = x + s * 0.54;
-    const my1 = y + s * 0.52, my2 = y + s * 0.62;
+    ctx.fillRect(x+s*0.14, ey, ew, eh);
+    ctx.fillRect(x+s*0.64, ey, ew, eh);
+    const mw = s*0.16, mx1 = x+s*0.30, mx2 = x+s*0.54;
+    const my1 = y+s*0.52, my2 = y+s*0.62, mh = s*0.20;
     ctx.fillStyle = C.creeperBlack;
-    ctx.fillRect(mx1, my1, mw, mh * 0.6);
-    ctx.fillRect(mx2, my1, mw, mh * 0.6);
-    ctx.fillRect(mx1, my2, mw + (mx2 - mx1) + mw, mh * 0.6);
+    ctx.fillRect(mx1, my1, mw, mh*0.6);
+    ctx.fillRect(mx2, my1, mw, mh*0.6);
+    ctx.fillRect(mx1, my2, mw+(mx2-mx1)+mw, mh*0.6);
   } else {
-    // Blink eyes closed
     ctx.fillStyle = C.creeperDark;
-    ctx.fillRect(x + s * 0.14, y + s * 0.35, s * 0.22, 3);
-    ctx.fillRect(x + s * 0.64, y + s * 0.35, s * 0.22, 3);
+    ctx.fillRect(x+s*0.14, y+s*0.35, s*0.22, 3);
+    ctx.fillRect(x+s*0.64, y+s*0.35, s*0.22, 3);
   }
 }
 
@@ -243,17 +289,9 @@ const GRAVITY = 0.55, JUMP = -13, SPEED = 4.5;
 let player;
 
 function makePlayer() {
-  return {
-    x: 80, y: H - TILE - 44,
-    w: 40, h: 40,
-    vx: 0, vy: 0,
-    onGround: false,
-    facing: 1,
-    blinkTimer: 0,
-    blink: false,
-    invincible: 0,
-    jumpHeld: false,
-  };
+  return { x:80, y:H-TILE-44, w:40, h:40, vx:0, vy:0,
+           onGround:false, facing:1, blinkTimer:0, blink:false,
+           invincible:0, jumpHeld:false };
 }
 
 function playerJump() {
@@ -265,7 +303,6 @@ function playerJump() {
 }
 
 function updatePlayer(plats) {
-  // Input
   const left  = keys['ArrowLeft']  || keys['KeyA'];
   const right = keys['ArrowRight'] || keys['KeyD'];
   const jump  = keys['ArrowUp']    || keys['KeyW'] || keys['Space'];
@@ -283,68 +320,49 @@ function updatePlayer(plats) {
 
   player.onGround = false;
   for (const p of plats) {
-    if (
-      player.x + player.w > p.x && player.x < p.x + p.w &&
-      player.y + player.h > p.y && player.y + player.h < p.y + p.h + 16 &&
-      player.vy >= 0
-    ) {
-      player.y = p.y - player.h;
+    if (player.x+player.w > p.x && player.x < p.x+p.w &&
+        player.y+player.h > p.y && player.y+player.h < p.y+p.h+16 && player.vy >= 0) {
+      player.y = p.y-player.h;
       player.vy = 0;
       player.onGround = true;
     }
   }
 
-  // World bounds
   if (player.x < 0) player.x = 0;
-  if (player.x + player.w > LEVEL_W) player.x = LEVEL_W - player.w;
+  if (player.x+player.w > LEVEL_W) player.x = LEVEL_W-player.w;
+  cameraX = Math.max(0, Math.min(player.x-W/3, LEVEL_W-W));
 
-  // Camera
-  cameraX = Math.max(0, Math.min(player.x - W / 3, LEVEL_W - W));
-
-  // Blink
   player.blinkTimer++;
-  if (player.blinkTimer > 120) { player.blink = true; }
+  if (player.blinkTimer > 120) player.blink = true;
   if (player.blinkTimer > 125) { player.blink = false; player.blinkTimer = 0; }
-
   if (player.invincible > 0) player.invincible--;
-
-  // Fell into void
-  if (player.y > H + 100) {
-    loseLife();
-  }
+  if (player.y > H+100) loseLife();
 }
 
 // ── Coins ────────────────────────────────────────────────────────────────────
 function updateCoins(coins) {
   for (const c of coins) {
     if (c.collected) continue;
-    const px = player.x + player.w / 2, py = player.y + player.h / 2;
-    const dx = px - c.x, dy = py - c.y;
-    if (Math.sqrt(dx*dx + dy*dy) < player.w / 2 + c.r) {
-      c.collected = true;
-      score += 10;
-    }
+    const dx = (player.x+player.w/2)-c.x, dy = (player.y+player.h/2)-c.y;
+    if (Math.sqrt(dx*dx+dy*dy) < player.w/2+c.r) { c.collected = true; score += 10; }
   }
 }
 
 function drawCoins(coins) {
-  const t = frameCount * 0.05;
+  const t = frameCount*0.05;
   for (const c of coins) {
     if (c.collected) continue;
-    const cx = c.x - cameraX;
-    if (cx < -30 || cx > W + 30) continue;
-    // Coin glow
+    const cx = c.x-cameraX;
+    if (cx < -30 || cx > W+30) continue;
     ctx.save();
-    ctx.shadowColor = C.coin;
-    ctx.shadowBlur = 10;
+    ctx.shadowColor = C.coin; ctx.shadowBlur = 10;
     ctx.fillStyle = C.coin;
     ctx.beginPath();
-    ctx.arc(cx, c.y + Math.sin(t + c.x * 0.01) * 4, c.r, 0, Math.PI * 2);
+    ctx.arc(cx, c.y+Math.sin(t+c.x*0.01)*4, c.r, 0, Math.PI*2);
     ctx.fill();
-    // shine
     ctx.fillStyle = '#fff8';
     ctx.beginPath();
-    ctx.arc(cx - 3, c.y + Math.sin(t + c.x * 0.01) * 4 - 3, c.r * 0.35, 0, Math.PI * 2);
+    ctx.arc(cx-3, c.y+Math.sin(t+c.x*0.01)*4-3, c.r*0.35, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
   }
@@ -354,123 +372,94 @@ function drawCoins(coins) {
 function updateSpikes(spikes) {
   if (player.invincible > 0) return;
   for (const s of spikes) {
-    if (
-      player.x + 4 < s.x + s.w && player.x + player.w - 4 > s.x &&
-      player.y + 4 < s.y + s.h && player.y + player.h > s.y
-    ) {
-      loseLife();
-      return;
-    }
+    if (player.x+4 < s.x+s.w && player.x+player.w-4 > s.x &&
+        player.y+4 < s.y+s.h && player.y+player.h > s.y) { loseLife(); return; }
   }
 }
 
 function drawSpikes(spikes) {
   for (const s of spikes) {
-    const sx = s.x - cameraX;
-    if (sx < -40 || sx > W + 40) continue;
-    const num = Math.round(s.w / 15);
-    const tw = s.w / num;
+    const sx = s.x-cameraX;
+    if (sx < -40 || sx > W+40) continue;
+    const num = Math.round(s.w/15), tw = s.w/num;
     for (let i = 0; i < num; i++) {
       ctx.fillStyle = C.spikeFill;
       ctx.beginPath();
-      ctx.moveTo(sx + i * tw, s.y + s.h);
-      ctx.lineTo(sx + i * tw + tw / 2, s.y);
-      ctx.lineTo(sx + (i + 1) * tw, s.y + s.h);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(sx+i*tw, s.y+s.h);
+      ctx.lineTo(sx+i*tw+tw/2, s.y);
+      ctx.lineTo(sx+(i+1)*tw, s.y+s.h);
+      ctx.closePath(); ctx.fill();
       ctx.fillStyle = C.spikeSide;
       ctx.beginPath();
-      ctx.moveTo(sx + i * tw + tw / 2, s.y);
-      ctx.lineTo(sx + (i + 1) * tw, s.y + s.h);
-      ctx.lineTo(sx + i * tw + tw * 0.55, s.y + s.h);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(sx+i*tw+tw/2, s.y);
+      ctx.lineTo(sx+(i+1)*tw, s.y+s.h);
+      ctx.lineTo(sx+i*tw+tw*0.55, s.y+s.h);
+      ctx.closePath(); ctx.fill();
     }
   }
 }
 
-// ── Flag (goal) ──────────────────────────────────────────────────────────────
+// ── Flag ─────────────────────────────────────────────────────────────────────
 let flagWave = 0;
 function drawFlag(flag) {
   flagWave += 0.07;
-  const fx = flag.x - cameraX;
-  // pole
+  const fx = flag.x-cameraX;
   ctx.fillStyle = '#aaa';
   ctx.fillRect(fx, flag.y, flag.w, flag.h);
-  // flag cloth waving
   ctx.save();
   ctx.fillStyle = '#e63946';
   ctx.beginPath();
   const fw = 60, fh = 35;
-  ctx.moveTo(fx + flag.w, flag.y);
+  ctx.moveTo(fx+flag.w, flag.y);
   for (let i = 0; i <= fw; i++) {
-    const wave = Math.sin((i / fw) * Math.PI * 2 + flagWave) * 5;
-    ctx.lineTo(fx + flag.w + i, flag.y + i * (fh / fw) + wave);
+    ctx.lineTo(fx+flag.w+i, flag.y+i*(fh/fw)+Math.sin((i/fw)*Math.PI*2+flagWave)*5);
   }
   for (let i = fw; i >= 0; i--) {
-    const wave = Math.sin((i / fw) * Math.PI * 2 + flagWave) * 5;
-    ctx.lineTo(fx + flag.w + i, flag.y + fh + wave);
+    ctx.lineTo(fx+flag.w+i, flag.y+fh+Math.sin((i/fw)*Math.PI*2+flagWave)*5);
   }
-  ctx.closePath();
-  ctx.fill();
-  // star
+  ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#fff';
   ctx.font = '18px serif';
-  ctx.fillText('★', fx + flag.w + 22, flag.y + 25);
+  ctx.fillText('★', fx+flag.w+22, flag.y+25);
   ctx.restore();
 }
 
 function checkFlag(flag) {
-  if (
-    player.x + player.w > flag.x && player.x < flag.x + 80 &&
-    player.y + player.h > flag.y && player.y < flag.y + flag.h
-  ) {
+  if (player.x+player.w > flag.x && player.x < flag.x+80 &&
+      player.y+player.h > flag.y && player.y < flag.y+flag.h) {
     state = 'win';
-    _pendingOverlay = ['GEWONNEN! 🎉', `Punkte: ${score}`, '[ ENTER für Neustart ]'];
+    _pendingOverlay = ['GEWONNEN! 🎉', `Punkte: ${score}`, '[ ENTER / Tippen ]'];
     showMeme(MEME_WIN, 'SIEG!', 3500);
   }
 }
 
 // ── Background ───────────────────────────────────────────────────────────────
 function drawBg() {
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, C.sky1);
-  grad.addColorStop(1, C.sky2);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  // Stars / pixels in bg
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, C.sky1); grad.addColorStop(1, C.sky2);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
   ctx.fillStyle = '#ffffff22';
   for (let i = 0; i < 80; i++) {
-    const sx = ((i * 137.5 + cameraX * 0.1) % W + W) % W;
-    const sy = (i * 53.7) % (H * 0.6);
-    ctx.fillRect(sx, sy, 1.5, 1.5);
+    const sx = ((i*137.5+cameraX*0.1)%W+W)%W;
+    ctx.fillRect(sx, (i*53.7)%(H*0.6), 1.5, 1.5);
   }
 }
 
 // ── Platforms ────────────────────────────────────────────────────────────────
 function drawPlatforms(plats) {
   for (const p of plats) {
-    const px = p.x - cameraX;
-    if (px + p.w < -20 || px > W + 20) continue;
+    const px = p.x-cameraX;
+    if (px+p.w < -20 || px > W+20) continue;
     if (p.type === 'ground') {
-      ctx.fillStyle = '#1b4332';
-      ctx.fillRect(px, p.y, p.w, p.h);
-      ctx.fillStyle = C.ground;
-      ctx.fillRect(px, p.y, p.w, 8);
-      // grass dots
+      ctx.fillStyle = '#1b4332'; ctx.fillRect(px, p.y, p.w, p.h);
+      ctx.fillStyle = C.ground;  ctx.fillRect(px, p.y, p.w, 8);
       ctx.fillStyle = '#52b78888';
-      for (let i = 0; i < p.w; i += 20)
-        ctx.fillRect(px + i + 4, p.y + 1, 8, 4);
+      for (let i = 0; i < p.w; i += 20) ctx.fillRect(px+i+4, p.y+1, 8, 4);
     } else {
-      ctx.fillStyle = '#2d4a3e';
-      ctx.fillRect(px, p.y + 8, p.w, p.h - 8);
-      ctx.fillStyle = C.platTop;
-      ctx.fillRect(px, p.y, p.w, 10);
-      // mossy texture
+      ctx.fillStyle = '#2d4a3e'; ctx.fillRect(px, p.y+8, p.w, p.h-8);
+      ctx.fillStyle = C.platTop; ctx.fillRect(px, p.y, p.w, 10);
       ctx.fillStyle = '#52b78855';
-      for (let i = 4; i < p.w - 4; i += 14)
-        ctx.fillRect(px + i, p.y + 2, 6, 5);
+      for (let i = 4; i < p.w-4; i += 14) ctx.fillRect(px+i, p.y+2, 6, 5);
     }
   }
 }
@@ -478,27 +467,21 @@ function drawPlatforms(plats) {
 // ── HUD ──────────────────────────────────────────────────────────────────────
 function updateHUD() {
   document.getElementById('scoreEl').textContent = `Punkte: ${score}`;
-  const h = '❤'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives));
-  document.getElementById('livesEl').textContent = `Leben: ${h}`;
+  document.getElementById('livesEl').textContent = `Leben: ${'❤'.repeat(lives)}${'🖤'.repeat(Math.max(0,3-lives))}`;
 }
 
 // ── Meme Overlay ─────────────────────────────────────────────────────────────
 const MEME_WIN  = 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnRubnB3cWptbWt6cjVtZDA1Y200cmI5eGl0ZXl1OGF0bmdsaWlwNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3ohryhNgUwwZyxgktq/giphy.gif';
 const MEME_DEAD = 'https://i.imgflip.com/59e3do.jpg';
+let _pendingOverlay = [];
 
 function showMeme(url, text, duration) {
-  const el   = document.getElementById('memeOverlay');
-  const img  = document.getElementById('memeImg');
-  const ptxt = document.getElementById('memeText');
-  img.src      = url;
-  ptxt.textContent = text;
+  const el = document.getElementById('memeOverlay');
+  document.getElementById('memeImg').src = url;
+  document.getElementById('memeText').textContent = text;
   el.style.display = 'flex';
-  setTimeout(() => {
-    el.style.display = 'none';
-    showOverlay(..._pendingOverlay);
-  }, duration);
+  setTimeout(() => { el.style.display = 'none'; showOverlay(..._pendingOverlay); }, duration);
 }
-let _pendingOverlay = [];
 
 // ── Overlay ──────────────────────────────────────────────────────────────────
 function showOverlay(title, msg, action) {
@@ -519,25 +502,24 @@ function loseLife() {
   updateHUD();
   if (lives <= 0) {
     state = 'dead';
-    _pendingOverlay = ['GAME OVER', `Punkte: ${score}`, '[ ENTER für Neustart ]'];
+    _pendingOverlay = ['GAME OVER', `Punkte: ${score}`, '[ ENTER / Tippen ]'];
     showMeme(MEME_DEAD, 'GAME OVER!', 3000);
   } else {
-    // Respawn
     player.x = Math.max(0, cameraX);
-    player.y = H - TILE - 44;
+    player.y = H-TILE-44;
     player.vx = 0; player.vy = 0;
     player.invincible = 120;
   }
 }
 
-// ── Main game setup ───────────────────────────────────────────────────────────
+// ── Game setup ───────────────────────────────────────────────────────────────
 let plats, coins, spikes, flag;
 
 function startGame() {
   score = 0; lives = 3; cameraX = 0; frameCount = 0;
   plats  = makePlatforms();
   coins  = makeCoins(plats);
-  spikes = makeSpikes(plats);
+  spikes = makeSpikes();
   flag   = makeFlag();
   player = makePlayer();
   state  = 'playing';
@@ -545,17 +527,16 @@ function startGame() {
   updateHUD();
 }
 
-// ── Particle effects (simple) ─────────────────────────────────────────────────
+// ── Particles ─────────────────────────────────────────────────────────────────
 const particles = [];
 function spawnParticles(x, y, color) {
   for (let i = 0; i < 8; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const s = 1 + Math.random() * 3;
-    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 2, life: 30, color });
+    const a = Math.random()*Math.PI*2, s = 1+Math.random()*3;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s-2, life: 30, color });
   }
 }
 function updateParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
+  for (let i = particles.length-1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
     if (p.life <= 0) particles.splice(i, 1);
@@ -563,9 +544,9 @@ function updateParticles() {
 }
 function drawParticles() {
   for (const p of particles) {
-    ctx.globalAlpha = p.life / 30;
+    ctx.globalAlpha = p.life/30;
     ctx.fillStyle = p.color;
-    ctx.fillRect(p.x - cameraX - 3, p.y - 3, 6, 6);
+    ctx.fillRect(p.x-cameraX-3, p.y-3, 6, 6);
   }
   ctx.globalAlpha = 1;
 }
@@ -577,51 +558,43 @@ function draw() {
   drawSpikes(spikes);
   drawCoins(coins);
   drawFlag(flag);
-
-  // Player (with invincibility flash)
-  if (player.invincible === 0 || Math.floor(player.invincible / 6) % 2 === 0) {
-    const px = player.x - cameraX;
+  if (player.invincible === 0 || Math.floor(player.invincible/6)%2 === 0) {
+    const px = player.x-cameraX;
     ctx.save();
     if (player.facing === -1) {
-      ctx.translate(px + player.w, player.y);
-      ctx.scale(-1, 1);
+      ctx.translate(px+player.w, player.y); ctx.scale(-1,1);
       drawCreeper(0, 0, player.w, player.blink);
     } else {
       drawCreeper(px, player.y, player.w, player.blink);
     }
     ctx.restore();
   }
-
   drawParticles();
 }
 
 // ── Loop ──────────────────────────────────────────────────────────────────────
 function loop() {
   frameCount++;
-  ctx.clearRect(0, 0, W, H);
-
+  ctx.clearRect(0,0,W,H);
   if (state === 'playing') {
     updatePlayer(plats);
-    const prevCoins = coins.filter(c => !c.collected).length;
+    const prev = coins.filter(c => !c.collected).length;
     updateCoins(coins);
-    const newCoins = coins.filter(c => !c.collected).length;
-    if (newCoins < prevCoins) spawnParticles(player.x + 20, player.y, C.coin);
+    if (coins.filter(c => !c.collected).length < prev) spawnParticles(player.x+20, player.y, C.coin);
     updateSpikes(spikes);
     checkFlag(flag);
     updateParticles();
     updateHUD();
   }
-
   draw();
   requestAnimationFrame(loop);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-showOverlay('CREEPER JUMP & RUN', 'Pfeiltasten / WASD zum Bewegen | W / ↑ / Leertaste zum Springen', '[ ENTER drücken ]');
-// Pre-init so draw() doesn't crash before startGame
+showOverlay('CREEPER JUMP & RUN', 'Pfeiltasten / WASD | W / ↑ / Leertaste zum Springen', '[ ENTER / Tippen ]');
 plats  = makePlatforms();
 coins  = makeCoins(plats);
-spikes = makeSpikes(plats);
+spikes = makeSpikes();
 flag   = makeFlag();
 player = makePlayer();
 loop();
