@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pet Care Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #87CEEB;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── SELECTION SCREEN ── */
+  #selection-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(180deg, #87CEEB 0%, #b0e0b0 100%);
+  }
+
+  #selection-screen h1 {
+    font-size: 2.8rem;
+    color: #2d4a1e;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    margin-bottom: 0.5rem;
+  }
+
+  #selection-screen p {
+    font-size: 1.1rem;
+    color: #3a5a2a;
+    margin-bottom: 3rem;
+  }
+
+  .animal-choices {
+    display: flex;
+    gap: 5rem;
+  }
+
+  .animal-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 2rem;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.3);
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+  }
+
+  .animal-card:hover {
+    border-color: #2d7a1e;
+    background: rgba(255,255,255,0.5);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  }
+
+  .animal-card span {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2d4a1e;
+    margin-top: 1rem;
+  }
+
+  /* ── GAME SCREEN ── */
+  #game-screen {
+    display: none;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+  }
+
+  /* Sky */
+  #sky {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 55%;
+    background: linear-gradient(180deg, #5ba8e0 0%, #a8d8f0 100%);
+  }
+
+  /* Sun */
+  #sun {
+    position: absolute;
+    top: 40px;
+    left: 80px;
+    width: 70px;
+    height: 70px;
+    background: radial-gradient(circle, #ffe566 60%, #ffcc00 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 30px 15px rgba(255,220,50,0.4);
+  }
+
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.85;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+  }
+  .cloud-1 { width: 130px; height: 45px; top: 60px; left: 200px; animation: drift 25s linear infinite; }
+  .cloud-1::before { width: 60px; height: 60px; top: -30px; left: 20px; }
+  .cloud-1::after  { width: 50px; height: 50px; top: -20px; left: 60px; }
+  .cloud-2 { width: 100px; height: 35px; top: 100px; left: 500px; animation: drift 35s linear infinite; }
+  .cloud-2::before { width: 50px; height: 50px; top: -25px; left: 15px; }
+  .cloud-2::after  { width: 40px; height: 40px; top: -15px; left: 50px; }
+  .cloud-3 { width: 110px; height: 40px; top: 45px; left: 750px; animation: drift 20s linear infinite; }
+  .cloud-3::before { width: 55px; height: 55px; top: -28px; left: 18px; }
+  .cloud-3::after  { width: 45px; height: 45px; top: -18px; left: 55px; }
+
+  @keyframes drift {
+    from { transform: translateX(-200px); }
+    to   { transform: translateX(110vw); }
+  }
+
+  /* Ground */
+  #ground {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, #5aaa32 0%, #3d7a1e 100%);
+    border-radius: 0;
+  }
+
+  /* Grass detail */
+  #ground::before {
+    content: '';
+    position: absolute;
+    top: -10px; left: 0; right: 0;
+    height: 20px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 6px,
+      #4cbb20 6px, #4cbb20 10px
+    );
+    border-radius: 4px;
+  }
+
+  /* Right panel */
+  #action-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 130px;
+    height: 100%;
+    background: rgba(20, 40, 10, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 20px 10px;
+    border-left: 3px solid rgba(100,180,50,0.4);
+    z-index: 100;
+  }
+
+  .action-btn {
+    width: 90px;
+    height: 90px;
+    border-radius: 16px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    color: #e0ffe0;
+    font-size: 0.7rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .action-btn:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.6);
+    transform: scale(1.08);
+    box-shadow: 0 0 18px rgba(150,255,100,0.3);
+  }
+
+  .action-btn:active { transform: scale(0.95); }
+  .action-btn .icon { font-size: 2.2rem; line-height: 1; }
+
+  #btn-taser { border-color: rgba(255,200,0,0.4); }
+  #btn-taser:hover { box-shadow: 0 0 18px rgba(255,220,0,0.5); }
+
+  /* ── PET CONTAINER ── */
+  #pet-area {
+    position: absolute;
+    left: 50%;
+    bottom: calc(48% - 10px);
+    transform: translateX(-50%);
+    width: 260px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── MOOD BUBBLE ── */
+  #mood-bubble {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 1.5rem;
+    border: 2px solid #ddd;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 20;
+  }
+  #mood-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: white;
+  }
+
+  /* ══════════════════════════════
+     SVG-ANIMALS (inline SVG)
+  ══════════════════════════════ */
+  #pet-svg {
+    width: 260px;
+    height: 200px;
+    overflow: visible;
+  }
+
+  /* ── IDLE: gentle breathe ── */
+  .pet-body {
+    animation: breathe 3.5s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+  @keyframes breathe {
+    0%,100% { transform: scaleY(1); }
+    50%      { transform: scaleY(1.03) scaleX(0.98); }
+  }
+
+  /* Tail wag */
+  .tail {
+    animation: wag 2s ease-in-out infinite;
+    transform-origin: left center;
+  }
+  @keyframes wag {
+    0%,100% { transform: rotate(0deg); }
+    25%     { transform: rotate(15deg); }
+    75%     { transform: rotate(-10deg); }
+  }
+
+  /* Cat tail curl */
+  .cat-tail {
+    animation: catTail 4s ease-in-out infinite;
+    transform-origin: left bottom;
+  }
+  @keyframes catTail {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(-20deg); }
+  }
+
+  /* Ear twitch */
+  .ear {
+    animation: earTwitch 6s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+  @keyframes earTwitch {
+    0%,80%,100% { transform: rotate(0deg); }
+    85%         { transform: rotate(-15deg); }
+    90%         { transform: rotate(8deg); }
+  }
+
+  /* ── ACTION ANIMATIONS ── */
+
+  /* EAT */
+  .anim-eat .pet-body {
+    animation: eatBob 0.4s ease-in-out 5;
+  }
+  @keyframes eatBob {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(8px); }
+  }
+
+  /* DRINK */
+  .anim-drink .pet-body {
+    animation: drinkLap 0.6s ease-in-out 4;
+  }
+  @keyframes drinkLap {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50%     { transform: translateY(6px) rotate(-3deg); }
+  }
+
+  /* PLAY */
+  .anim-play #pet-area {
+    animation: playJump 0.5s ease-in-out 4;
+  }
+  @keyframes playJump {
+    0%,100% { bottom: calc(48% - 10px); }
+    50%     { bottom: calc(48% + 40px); }
+  }
+
+  /* TASER */
+  .anim-taser .pet-body {
+    animation: taserShake 0.08s linear 20;
+  }
+  @keyframes taserShake {
+    0%   { transform: translateX(-5px); }
+    50%  { transform: translateX(5px); }
+    100% { transform: translateX(-5px); }
+  }
+
+  /* Play jump (pet-area animation trigger) */
+  #pet-area.jump {
+    animation: jump 0.45s ease-out 4;
+    transform-origin: bottom center;
+  }
+  @keyframes jump {
+    0%   { transform: translateX(-50%) translateY(0); }
+    40%  { transform: translateX(-50%) translateY(-55px); }
+    100% { transform: translateX(-50%) translateY(0); }
+  }
+
+  /* Flash for taser */
+  #flash-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,100,0.0);
+    pointer-events: none;
+    z-index: 999;
+    transition: background 0.05s;
+  }
+  #flash-overlay.flash {
+    animation: flashAnim 0.5s ease-out forwards;
+  }
+  @keyframes flashAnim {
+    0%   { background: rgba(255,255,100,0.7); }
+    100% { background: rgba(255,255,100,0.0); }
+  }
+
+  /* Lightning bolt overlay */
+  #lightning {
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 3rem;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity 0.1s;
+    filter: drop-shadow(0 0 8px yellow);
+  }
+  #lightning.show {
+    animation: lightningAnim 0.5s ease-out forwards;
+  }
+  @keyframes lightningAnim {
+    0%   { opacity: 1; transform: translateX(-50%) scale(1); }
+    80%  { opacity: 1; transform: translateX(-50%) scale(1.3); }
+    100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  }
+
+  /* Food/water bowl */
+  #bowl {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    font-size: 2rem;
+    transition: transform 0.2s ease;
+    z-index: 5;
+  }
+  #bowl.show { transform: translateX(-50%) scale(1); }
+
+  /* Ball */
+  #ball {
+    position: absolute;
+    bottom: -10px;
+    left: 20%;
+    font-size: 2rem;
+    opacity: 0;
+    z-index: 5;
+  }
+  #ball.roll {
+    animation: ballRoll 0.4s ease-in-out 4;
+  }
+  @keyframes ballRoll {
+    0%   { opacity: 1; left: 20%; }
+    50%  { left: 70%; }
+    100% { opacity: 0; left: 80%; }
+  }
+
+  /* Status bar */
+  #status-bar {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 100;
+    background: rgba(0,0,0,0.5);
+    padding: 10px 15px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.85rem;
+    backdrop-filter: blur(4px);
+  }
+
+  .stat-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+  .stat-bar-bg {
+    width: 100px; height: 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  #hunger-fill  { background: #ff9944; }
+  #thirst-fill  { background: #44aaff; }
+  #happy-fill   { background: #88ee44; }
+
+  #pet-name {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    color: #c8ffb0;
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    z-index: 100;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ SELECTION SCREEN ══ -->
+<div id="selection-screen">
+  <h1>🐾 Wähle dein Haustier</h1>
+  <p>Wer soll dein treuer Begleiter sein?</p>
+  <div class="animal-choices">
+    <div class="animal-card" onclick="startGame('greyhound')">
+      <svg width="160" height="130" viewBox="0 0 160 130">
+        <!-- Greyhound selection preview -->
+        <g transform="translate(10,10)">
+          <!-- body -->
+          <ellipse cx="70" cy="80" rx="45" ry="25" fill="#1a1a1a"/>
+          <!-- head -->
+          <ellipse cx="108" cy="60" rx="18" ry="14" fill="#1a1a1a"/>
+          <!-- snout -->
+          <ellipse cx="122" cy="65" rx="9" ry="7" fill="#222"/>
+          <!-- nose -->
+          <ellipse cx="130" cy="63" rx="4" ry="3" fill="#111"/>
+          <!-- eye -->
+          <circle cx="114" cy="56" r="4" fill="#ff9900"/>
+          <circle cx="115" cy="55" r="2" fill="#111"/>
+          <!-- ear -->
+          <ellipse cx="106" cy="48" rx="5" ry="9" fill="#111" transform="rotate(-15,106,48)"/>
+          <!-- legs -->
+          <rect x="45" y="97" width="10" height="28" rx="5" fill="#1a1a1a"/>
+          <rect x="62" y="97" width="10" height="28" rx="5" fill="#1a1a1a"/>
+          <rect x="80" y="97" width="10" height="26" rx="5" fill="#1a1a1a"/>
+          <rect x="97" y="97" width="10" height="26" rx="5" fill="#1a1a1a"/>
+          <!-- tail -->
+          <path d="M25 78 Q5 60 10 45" stroke="#1a1a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <span>Greyhound</span>
+    </div>
+
+    <div class="animal-card" onclick="startGame('cat')">
+      <svg width="160" height="130" viewBox="0 0 160 130">
+        <!-- Cat selection preview -->
+        <g transform="translate(10,5)">
+          <!-- body -->
+          <ellipse cx="70" cy="85" rx="38" ry="28" fill="#111"/>
+          <!-- head -->
+          <circle cx="103" cy="62" r="22" fill="#111"/>
+          <!-- ears -->
+          <polygon points="88,42 80,22 96,40" fill="#111"/>
+          <polygon points="90,40 83,23 95,38" fill="#1a0010"/>
+          <polygon points="116,42 124,22 108,40" fill="#111"/>
+          <polygon points="114,40 121,23 109,38" fill="#1a0010"/>
+          <!-- face -->
+          <circle cx="97" cy="59" r="4" fill="#44ff88"/>
+          <ellipse cx="97" cy="59" rx="2" ry="3.5" fill="#111"/>
+          <circle cx="109" cy="59" r="4" fill="#44ff88"/>
+          <ellipse cx="109" cy="59" rx="2" ry="3.5" fill="#111"/>
+          <!-- nose -->
+          <polygon points="103,66 100,63 106,63" fill="#ff66aa"/>
+          <!-- whiskers -->
+          <line x1="103" y1="65" x2="78" y2="60" stroke="#555" stroke-width="1.5"/>
+          <line x1="103" y1="67" x2="78" y2="67" stroke="#555" stroke-width="1.5"/>
+          <line x1="103" y1="65" x2="128" y2="60" stroke="#555" stroke-width="1.5"/>
+          <line x1="103" y1="67" x2="128" y2="67" stroke="#555" stroke-width="1.5"/>
+          <!-- legs -->
+          <rect x="45" y="105" width="11" height="22" rx="6" fill="#111"/>
+          <rect x="62" y="105" width="11" height="22" rx="6" fill="#111"/>
+          <rect x="82" y="105" width="11" height="20" rx="6" fill="#111"/>
+          <rect x="99" y="105" width="11" height="20" rx="6" fill="#111"/>
+          <!-- tail -->
+          <path d="M32 85 Q10 70 20 45 Q30 25 40 40" stroke="#111" stroke-width="9" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <span>Katze</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div id="game-screen">
+  <div id="flash-overlay"></div>
+  <div id="sky">
+    <div id="sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+  </div>
+  <div id="ground"></div>
+
+  <div id="status-bar">
+    <div class="stat-row">🍖 <div class="stat-bar-bg"><div class="stat-bar-fill" id="hunger-fill" style="width:80%"></div></div></div>
+    <div class="stat-row">💧 <div class="stat-bar-bg"><div class="stat-bar-fill" id="thirst-fill" style="width:75%"></div></div></div>
+    <div class="stat-row">😊 <div class="stat-bar-bg"><div class="stat-bar-fill" id="happy-fill"  style="width:90%"></div></div></div>
+  </div>
+
+  <div id="pet-name"></div>
+
+  <!-- Pet -->
+  <div id="pet-area">
+    <div id="mood-bubble">😊</div>
+    <div id="lightning">⚡</div>
+    <div id="bowl"></div>
+    <div id="ball">🎾</div>
+    <svg id="pet-svg" viewBox="0 0 260 200" overflow="visible">
+      <!-- filled by JS -->
+    </svg>
+  </div>
+
+  <!-- Action panel -->
+  <div id="action-panel">
+    <button class="action-btn" id="btn-food"  onclick="doAction('food')">
+      <span class="icon">🍖</span>Futter
+    </button>
+    <button class="action-btn" id="btn-water" onclick="doAction('water')">
+      <span class="icon">💧</span>Wasser
+    </button>
+    <button class="action-btn" id="btn-ball"  onclick="doAction('play')">
+      <span class="icon">🎾</span>Spielen
+    </button>
+    <button class="action-btn" id="btn-taser" onclick="doAction('taser')">
+      <span class="icon">⚡</span>Taser
+    </button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let currentPet = null;
+let hunger = 80, thirst = 75, happy = 90;
+let actionLocked = false;
+
+const moods = {
+  eating:   ['😋','🤤','🍖'],
+  drinking: ['😊','💧','🐾'],
+  playing:  ['🎉','😄','🐾'],
+  taser:    ['😱','⚡','💀'],
+  idle:     ['😊','😴','🥱','👀','🤔']
+};
+
+// ═══════════════════════════════════════════════
+// SVG TEMPLATES
+// ═══════════════════════════════════════════════
+
+function getGreyhoundSVG() {
+  return `
+  <g class="pet-body" id="pet-body-group">
+    <!-- Shadow -->
+    <ellipse cx="130" cy="195" rx="65" ry="8" fill="rgba(0,0,0,0.2)"/>
+
+    <!-- Tail -->
+    <g class="tail" style="transform-origin:55px 110px">
+      <path d="M55 110 Q20 90 18 65 Q16 45 28 38"
+            stroke="#1a1a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- Back legs -->
+    <rect x="75"  y="148" width="16" height="45" rx="8" fill="#151515"/>
+    <rect x="97"  y="148" width="16" height="45" rx="8" fill="#1a1a1a"/>
+    <!-- Paws back -->
+    <ellipse cx="83"  cy="194" rx="10" ry="5" fill="#111"/>
+    <ellipse cx="105" cy="194" rx="10" ry="5" fill="#111"/>
+
+    <!-- Body -->
+    <ellipse cx="120" cy="130" rx="68" ry="38" fill="#1a1a1a"/>
+    <!-- Belly lighter -->
+    <ellipse cx="120" cy="138" rx="40" ry="22" fill="#222"/>
+
+    <!-- Front legs -->
+    <rect x="143" y="150" width="16" height="43" rx="8" fill="#151515"/>
+    <rect x="163" y="150" width="16" height="43" rx="8" fill="#1a1a1a"/>
+    <!-- Paws front -->
+    <ellipse cx="151" cy="194" rx="10" ry="5" fill="#111"/>
+    <ellipse cx="171" cy="194" rx="10" ry="5" fill="#111"/>
+
+    <!-- Neck -->
+    <ellipse cx="178" cy="115" rx="18" ry="24" fill="#1a1a1a" transform="rotate(-15,178,115)"/>
+
+    <!-- Head -->
+    <ellipse cx="198" cy="90" rx="26" ry="20" fill="#1a1a1a"/>
+    <!-- Snout / muzzle -->
+    <ellipse cx="218" cy="100" rx="16" ry="11" fill="#161616"/>
+    <!-- Nose -->
+    <ellipse cx="232" cy="97" rx="6" ry="5" fill="#0a0a0a"/>
+    <ellipse cx="231" cy="95" rx="2" ry="1.5" fill="#333"/>
+
+    <!-- Eye -->
+    <circle cx="204" cy="83" r="6" fill="#cc8800"/>
+    <circle cx="205" cy="82" r="3.5" fill="#050505"/>
+    <circle cx="206" cy="81" r="1" fill="white"/>
+
+    <!-- Ear (floppy) -->
+    <ellipse cx="192" cy="72" rx="8" ry="15" fill="#111" transform="rotate(-20,192,72)" class="ear"/>
+
+    <!-- Collar -->
+    <rect x="176" y="108" width="35" height="8" rx="4" fill="#cc2200"/>
+    <circle cx="193" cy="116" r="3" fill="#ffcc00"/>
+  </g>`;
+}
+
+function getCatSVG() {
+  return `
+  <g class="pet-body" id="pet-body-group">
+    <!-- Shadow -->
+    <ellipse cx="130" cy="195" rx="60" ry="8" fill="rgba(0,0,0,0.2)"/>
+
+    <!-- Tail (curled) -->
+    <g class="cat-tail">
+      <path d="M70 145 Q30 130 22 100 Q15 72 30 60 Q42 50 48 62"
+            stroke="#111" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <!-- tail tip curl -->
+      <path d="M48 62 Q38 52 44 46 Q52 40 56 48"
+            stroke="#1a1a1a" stroke-width="9" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- Back legs -->
+    <rect x="80"  y="150" width="18" height="42" rx="9" fill="#111"/>
+    <rect x="104" y="150" width="18" height="42" rx="9" fill="#181818"/>
+    <!-- Paws back -->
+    <ellipse cx="89"  cy="193" rx="12" ry="6" fill="#0d0d0d"/>
+    <ellipse cx="113" cy="193" rx="12" ry="6" fill="#0d0d0d"/>
+
+    <!-- Body -->
+    <ellipse cx="125" cy="133" rx="60" ry="38" fill="#141414"/>
+    <!-- Belly -->
+    <ellipse cx="125" cy="142" rx="35" ry="22" fill="#1e1e1e"/>
+
+    <!-- Front legs -->
+    <rect x="145" y="155" width="18" height="38" rx="9" fill="#111"/>
+    <rect x="167" y="155" width="18" height="38" rx="9" fill="#181818"/>
+    <!-- Paws front -->
+    <ellipse cx="154" cy="194" rx="12" ry="6" fill="#0d0d0d"/>
+    <ellipse cx="176" cy="194" rx="12" ry="6" fill="#0d0d0d"/>
+
+    <!-- Neck -->
+    <ellipse cx="180" cy="112" rx="20" ry="26" fill="#141414" transform="rotate(-8,180,112)"/>
+
+    <!-- Head -->
+    <circle cx="190" cy="88" r="34" fill="#141414"/>
+
+    <!-- Ears -->
+    <polygon points="168,62 158,35 182,60" fill="#111" class="ear"/>
+    <polygon points="170,60 161,36 181,58" fill="#2a0020"/>
+    <polygon points="210,62 220,35 196,60" fill="#111" class="ear"/>
+    <polygon points="208,60 217,36 197,58" fill="#2a0020"/>
+
+    <!-- Eyes (green) -->
+    <circle cx="180" cy="85" r="7" fill="#22dd66"/>
+    <ellipse cx="180" cy="85" rx="3.5" ry="5.5" fill="#050505"/>
+    <circle cx="181" cy="83" r="1.5" fill="white"/>
+
+    <circle cx="200" cy="85" r="7" fill="#22dd66"/>
+    <ellipse cx="200" cy="85" rx="3.5" ry="5.5" fill="#050505"/>
+    <circle cx="201" cy="83" r="1.5" fill="white"/>
+
+    <!-- Nose -->
+    <polygon points="190,97 186,92 194,92" fill="#ff55aa"/>
+    <!-- Mouth -->
+    <path d="M186 97 Q190 103 194 97" stroke="#555" stroke-width="1.5" fill="none"/>
+
+    <!-- Whiskers -->
+    <line x1="178" y1="93" x2="148" y2="87" stroke="#444" stroke-width="1.5"/>
+    <line x1="178" y1="96" x2="148" y2="96" stroke="#444" stroke-width="1.5"/>
+    <line x1="178" y1="93" x2="150" y2="102" stroke="#444" stroke-width="1.5"/>
+    <line x1="202" y1="93" x2="232" y2="87" stroke="#444" stroke-width="1.5"/>
+    <line x1="202" y1="96" x2="232" y2="96" stroke="#444" stroke-width="1.5"/>
+    <line x1="202" y1="93" x2="230" y2="102" stroke="#444" stroke-width="1.5"/>
+
+    <!-- Collar -->
+    <path d="M162 110 Q190 120 218 110" stroke="#dd0000" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="190" cy="118" r="4" fill="#ffcc00"/>
+  </g>`;
+}
+
+// ═══════════════════════════════════════════════
+// GAME START
+// ═══════════════════════════════════════════════
+
+function startGame(pet) {
+  currentPet = pet;
+  document.getElementById('selection-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+
+  const name = pet === 'greyhound' ? '🐕 Shadow' : '🐈 Nacht';
+  document.getElementById('pet-name').textContent = name;
+
+  const svg = document.getElementById('pet-svg');
+  svg.innerHTML = pet === 'greyhound' ? getGreyhoundSVG() : getCatSVG();
+
+  // start stat drain
+  setInterval(drainStats, 8000);
+  // random idle reactions
+  setInterval(idleReaction, 12000);
+}
+
+// ═══════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════
+
+function updateBars() {
+  document.getElementById('hunger-fill').style.width = hunger + '%';
+  document.getElementById('thirst-fill').style.width = thirst + '%';
+  document.getElementById('happy-fill').style.width  = happy  + '%';
+}
+
+function drainStats() {
+  hunger = Math.max(0, hunger - 3);
+  thirst = Math.max(0, thirst - 4);
+  happy  = Math.max(0, happy  - 2);
+  updateBars();
+  if (hunger < 20 || thirst < 20) showMood('😩');
+}
+
+// ═══════════════════════════════════════════════
+// MOOD BUBBLE
+// ═══════════════════════════════════════════════
+
+function showMood(emoji, duration = 2000) {
+  const b = document.getElementById('mood-bubble');
+  b.textContent = emoji;
+  b.style.opacity = '1';
+  clearTimeout(b._timer);
+  b._timer = setTimeout(() => { b.style.opacity = '0'; }, duration);
+}
+
+function idleReaction() {
+  if (actionLocked) return;
+  const opts = moods.idle;
+  showMood(opts[Math.floor(Math.random() * opts.length)], 1800);
+}
+
+// ═══════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════
+
+function doAction(type) {
+  if (actionLocked) return;
+  actionLocked = true;
+
+  const body    = document.getElementById('pet-body-group');
+  const petArea = document.getElementById('pet-area');
+  const bowl    = document.getElementById('bowl');
+  const ball    = document.getElementById('ball');
+  const flash   = document.getElementById('flash-overlay');
+  const lightning = document.getElementById('lightning');
+
+  // Clear previous animation classes
+  body.style.animation = '';
+  petArea.classList.remove('jump');
+  bowl.classList.remove('show');
+  ball.classList.remove('roll');
+  flash.classList.remove('flash');
+  lightning.classList.remove('show');
+
+  void body.offsetWidth; // reflow trick
+
+  if (type === 'food') {
+    hunger = Math.min(100, hunger + 30);
+    happy  = Math.min(100, happy  + 10);
+    bowl.textContent = '🍖';
+    bowl.classList.add('show');
+    body.style.animation = 'eatBob 0.4s ease-in-out 5';
+    showMood(currentPet === 'cat' ? '😋🐟' : '😋🦴', 3000);
+    setTimeout(() => { bowl.classList.remove('show'); actionLocked = false; }, 3000);
+
+  } else if (type === 'water') {
+    thirst = Math.min(100, thirst + 35);
+    happy  = Math.min(100, happy  + 5);
+    bowl.textContent = '💧';
+    bowl.classList.add('show');
+    body.style.animation = 'drinkLap 0.6s ease-in-out 4';
+    showMood(currentPet === 'cat' ? '😺💧' : '🐕💧', 3000);
+    setTimeout(() => { bowl.classList.remove('show'); actionLocked = false; }, 3000);
+
+  } else if (type === 'play') {
+    happy  = Math.min(100, happy  + 25);
+    ball.style.opacity = '1';
+    ball.classList.add('roll');
+
+    if (currentPet === 'greyhound') {
+      // greyhound sprints → big jumps
+      petArea.classList.add('jump');
+      showMood('🎉🐕💨', 3000);
+    } else {
+      // cat pounces → smaller hops
+      body.style.animation = 'eatBob 0.3s ease-in-out 6';
+      showMood('😸🎾', 3000);
+    }
+
+    setTimeout(() => {
+      ball.classList.remove('roll');
+      ball.style.opacity = '0';
+      petArea.classList.remove('jump');
+      actionLocked = false;
+    }, 2500);
+
+  } else if (type === 'taser') {
+    happy  = Math.max(0, happy  - 35);
+    hunger = Math.max(0, hunger - 5);
+
+    // Flash the screen yellow
+    flash.classList.add('flash');
+    lightning.classList.add('show');
+
+    body.style.animation = 'taserShake 0.08s linear 20';
+
+    if (currentPet === 'cat') {
+      showMood('😾⚡💢', 3000);
+    } else {
+      showMood('😱⚡🐕', 3000);
+    }
+
+    // Brief fur-glow effect (CSS filter trick)
+    const svg = document.getElementById('pet-svg');
+    svg.style.filter = 'brightness(3) saturate(0.2)';
+    setTimeout(() => { svg.style.filter = ''; }, 400);
+
+    setTimeout(() => {
+      flash.classList.remove('flash');
+      lightning.classList.remove('show');
+      actionLocked = false;
+    }, 2000);
+  }
+
+  updateBars();
+}
+
+// ═══════════════════════════════════════════════
+// RANDOM IDLE BEHAVIORS
+// ═══════════════════════════════════════════════
+
+setInterval(() => {
+  if (!currentPet || actionLocked) return;
+  const r = Math.random();
+  if (r < 0.15) {
+    // Sit down animation (subtle)
+    const body = document.getElementById('pet-body-group');
+    if (body) {
+      body.style.animation = 'none';
+      void body.offsetWidth;
+      body.style.animation = 'breathe 3.5s ease-in-out infinite';
+    }
+  }
+}, 15000);
+</script>
+</body>
+</html>
